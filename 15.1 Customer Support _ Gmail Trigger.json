@@ -1,0 +1,628 @@
+{
+  "name": "15.1 Customer Support : Gmail Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Input Query \n\nHi, \nMy product is defective. What should i do? How do i speak to a live human representative?\n\nThanks,\nDavid\n\nHey, \nI was wondering how can I track my orders? Also, what is your refund policy? \nThanks, James.",
+        "height": 304,
+        "width": 512,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -240
+      ],
+      "id": "236f2c4b-3009-477a-b4f3-eee62a42b3b9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -368,
+        -144
+      ],
+      "id": "32fe11bd-a2dc-472e-a788-0d9d7d4b7eb7",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eCK4EFn7FCxilJEq",
+          "name": "Gmail AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7325c3ef-a20d-4bd5-b8d9-0a17de073448",
+              "name": "emailBody",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "cb9eab26-3ea4-433d-869b-9e3ac9f87c77",
+              "name": "threadID",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "4f7a0b01-0274-4fca-88b1-abb802101a4a",
+              "name": "from",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        -144
+      ],
+      "id": "c6218741-f9f6-4e25-8d22-8dc7b91ddf9b",
+      "name": "Set Content"
+    },
+    {
+      "parameters": {
+        "content": "## Mind Studio\n",
+        "height": 80,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -368
+      ],
+      "id": "1b6c440b-5607-40cc-85e7-0e1ec0257a07",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.content.customerSupport }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "686f068c-f0c6-44c7-a6b1-94b77cec2d86"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Customer Support"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a7ed65f1-a8df-4adb-905a-459d482d44d4",
+                    "leftValue": "={{ $json.message.content.customerSupport }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Customer Support"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        240,
+        -144
+      ],
+      "id": "14afe563-98da-43d6-8f08-396ef6a13390",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Set Content').item.json.emailBody }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Agent: Conversational Agent\n\n# System Role\nYou are a highly skilled and empathetic customer support agent specializing in drafting professional and helpful responses to incoming customer emails.\n\n# Task Specification\n1. Take an incoming customer support email.\n2. Use the **\"customerSupportDocs\"** tool to look up relevant policies or FAQs to ensure accurate and policy-compliant responses.\n3. Create a draft response using the **\"createDraft\"** tool.\n4. After drafting the email, provide a concise summary of the email content.\n\nEnsure the response:\n- Directly addresses the customer's query.\n- Maintains a polite and professional tone.\n- Ends with the sign-off:  \n  **\"Kelly, Customer Support ABC Corp.\"**\n\n# Specifics and Context\n- You must use the **\"customerSupportDocs\"** tool before drafting to ensure the response aligns with company policies and FAQs.\n- The **\"createDraft\"** tool must be used to finalize and prepare the draft for sending.\n- The summary should briefly explain the issue addressed and the key points or resolution provided in the response.\n\n# Examples\n## Example 1\n**Incoming Email:**  \n\"I ordered a product a week ago, but it still hasn't shipped. When will it arrive?\"\n\n**customerSupportDocs Search Query:**  \n\"shipping timelines\"\n\n**Relevant Info Found:**  \nStandard shipping takes 7–10 business days. Delays may occur during high-demand periods.\n\n**Draft Response (via createDraft):**  \nDear [Customer's Name],  \n\nThank you for reaching out regarding your order. Standard shipping typically takes 7–10 business days. However, during high-demand periods, there may be slight delays.  \n\nI’ve checked your order, and it’s currently being prepared for shipment. You should receive a tracking number shortly. If you have any further questions, feel free to let me know.  \n\nBest regards,  \nKelly, Customer Support ABC Corp  \n\n**Summary:**  \nDrafted a response to inform the customer about shipping timelines (7–10 business days) and noted that their order is being prepared for shipment. Included reassurance and an invitation for further inquiries.\n\n---\n\n## Example 2\n**Incoming Email:**  \n\"I tried to cancel my subscription but was still charged this month. Can I get a refund?\"\n\n**customerSupportDocs Search Query:**  \n\"subscription cancellation policy\"\n\n**Relevant Info Found:**  \nCancellations must be made 48 hours before the next billing cycle to avoid charges.\n\n**Draft Response (via createDraft):**  \nDear [Customer's Name],  \n\nThank you for contacting us about your subscription charge. Our records show the cancellation was processed after the billing cycle had begun. To avoid future charges, cancellations must be made at least 48 hours prior to the next billing cycle.  \n\nAs a courtesy, I’ve initiated a refund for this month’s charge. Please allow 3–5 business days for the refund to appear on your statement.  \n\nIf you have any other questions, feel free to reach out.  \n\nBest regards,  \nKelly, Customer Support ABC Corp  \n\n**Summary:**  \nDrafted a response explaining the subscription cancellation policy (48-hour notice) and initiated a one-time refund as a courtesy. Provided reassurance and invited further questions.\n\n# Reminders\n- Always use **\"customerSupportDocs\"** to ensure responses align with company policies and FAQs.\n- Use the **\"createDraft\"** tool to finalize the email draft.\n- Summarize the draft concisely, covering the issue addressed and the resolution or key points provided.\n- Maintain a polite, professional, and empathetic tone.\n- Always sign off as:  \n  **\"Kelly, Customer Support ABC Corp.\"**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        -272
+      ],
+      "id": "d78dbda4-fa1e-4701-9d30-f9967ed2da71",
+      "name": "Customer Support Agent"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=## Overview\nAnalyze the content of the following email and determine whether it is related \nto customer support. If the email pertains to any of the following topics, \nmark customerSupport as true; otherwise, mark it as false.\n\n## Customer Support Topics Include:\n\nQuestions about order status, tracking, or changes\nIssues with damaged or defective products\nRefund or return requests\nSubscription cancellations or adjustments\nTechnical issues with products, website, or app\nPayment or billing inquiries\nRequests for speaking with a support representative\n\n##Output:\nProvide the result in JSON format with a field named \"customerSupport\" set to \ntrue or false.\n",
+              "role": "system"
+            },
+            {
+              "content": "=Here is the incoming mail: {{ $json.emailBody }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -48,
+        -144
+      ],
+      "id": "3ed0a755-c67e-4449-8eb7-8d92cbfe2c47",
+      "name": "Mail is Customer Support ?",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        -96
+      ],
+      "id": "d3a2208f-2b61-4a88-bc09-aac7e3ab594c",
+      "name": "gpt-4.1-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Retrieves information about our customer support policies and FAQs."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        -80
+      ],
+      "id": "a389f245-88a7-40bc-b770-a39dbcab9941",
+      "name": "Answer questions with a vector store"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        48
+      ],
+      "id": "030ca045-0b4b-4184-b9c2-8ce7e15ba5df",
+      "name": "gpt-4.1-mini1",
+      "credentials": {
+        "openAiApi": {
+          "id": "2ll7nWhcZokpqeYF",
+          "name": "OpenAi account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        256
+      ],
+      "id": "80d63f95-e885-42df-9e29-ecc54547afdd",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nhAOL9sKMfyG8Vrt",
+          "name": "Google Gemini(PaLM) API account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $fromAI(\"subject\") }}",
+        "message": "={{ $fromAI(\"emailbody\") }}",
+        "options": {
+          "threadId": "={{ $('Set Content').item.json.threadID }}",
+          "sendTo": "={{ $('Set Content').item.json.from }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        -160
+      ],
+      "id": "fa5718fd-48d3-4d84-bf9c-13cf5aaf3746",
+      "name": "Create a draft in Gmail",
+      "webhookId": "a9b91b74-94e7-47dc-acb9-7ca3d6112d4b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eCK4EFn7FCxilJEq",
+          "name": "Gmail AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6045121781",
+        "text": "=You received an email at {{ $now.format('hh:mm') }} saying:\n\n{{ $('Set Content').item.json.emailBody }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7d6db4a0-da0e-4f3b-9775-dcc1b7b3363d",
+      "name": "Response Not Customer Support",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        96
+      ],
+      "webhookId": "5978e407-bc66-42db-b02f-6c142533a417",
+      "credentials": {
+        "telegramApi": {
+          "id": "zkiSktd27uDpf3Q0",
+          "name": "Telegram account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6045121781",
+        "text": "=You recieve an email at {{ $now.format('yyyy-MM-dd') }}\n\n{{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        -272
+      ],
+      "id": "ca6a8ea2-24e5-46fb-9ec1-1058444f2c27",
+      "name": "Response",
+      "webhookId": "15b9a679-d168-4396-81a0-e356452bed3c",
+      "credentials": {
+        "telegramApi": {
+          "id": "zkiSktd27uDpf3Q0",
+          "name": "Telegram account AIS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "n8n-sample",
+          "mode": "list",
+          "cachedResultName": "n8n-sample"
+        },
+        "options": {
+          "pineconeNamespace": "Customer Support Policies and FAQs"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        96
+      ],
+      "id": "44f2cf99-7fc0-4956-86d6-81e2d8d5b3f8",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "2iuyzAXGASVualea",
+          "name": "PineconeApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "id": "1999b806285850e7",
+          "threadId": "1999b806285850e7",
+          "labelIds": [
+            "UNREAD",
+            "CATEGORY_PERSONAL",
+            "INBOX"
+          ],
+          "sizeEstimate": 13036,
+          "headers": {
+            "delivered-to": "Delivered-To: sachinsavkare08@gmail.com",
+            "received": "Received: from TY2PPF5F53593E2.apcprd06.prod.outlook.com\r\n ([fe80::89:fb6:98e9:b978]) by TY2PPF5F53593E2.apcprd06.prod.outlook.com\r\n ([fe80::89:fb6:98e9:b978%6]) with mapi id 15.20.9094.021; Tue, 30 Sep 2025\r\n 16:41:43 +0000",
+            "x-google-smtp-source": "X-Google-Smtp-Source: AGHT+IELaUpCtgoRwkJFvYHK+SnEuUP5XkneQYlFuMr/ukvVlcLmdGsGLsH768YuXvVvdLj4Rs86",
+            "x-received": "X-Received: by 2002:a05:690c:a184:b0:77e:d606:cc56 with SMTP id 00721157ae682-77f6f14480amr3663557b3.10.1759250506667;\r\n        Tue, 30 Sep 2025 09:41:46 -0700 (PDT)",
+            "arc-seal": "ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;\r\n b=yMbsLUBS9GbXoji2yRpxDzk5jTfF1vEDx6JAUwOFAepxNoYH6SezWQnJ+trlF5ApQtjxxvfldeHs/Rmw4eFauMlpXM8/CkfAQRljCzQpGPYQjjryw56tZxFdNV9qaZL24vB+KkaMNybdkk7/ZgGiPfpKrbLuyPV78uk0eUWZV04Cyfbw0U4cv/3TdDEXjEmo05QVkEiCBOfxGH6aSvCut5xaI/BljTtdJdk7gbnnZSEGCZozKEnfqE6NOc7qDCMOvg666G0oMHwtOMuh7UuPNAD2/WbEUl735LA35A24MGd2bI6yQ77IN3hehWrnaSgORxm/PvBIhx4dTL3twaJXvg==",
+            "arc-message-signature": "ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;\r\n s=arcselector10001;\r\n h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;\r\n bh=PysDArNb5zozNDReSEUhdKQ2zDAYAKfmTuuOj+mD4Ro=;\r\n b=n98rud4pnS3GWeBmu+35JmrkBFYopH0BwJ985qW9RJ83FNIepHj18g4mjiS9re83zPrUKwNBFaNiYF+LTlhhejiOTy8yemIRfNOD+lQEYXbLanUHSHwvJOapzMAYuZusq7Bh3MRt848dE2lBkE/JktY1le+e/Tru2+BaetYqI0zk9r5UUrTi+sju90WIpJZTrgoa5hKfgh7P7ySdOMtDhP3V3ykyXm/bDo0iCi/HlNUZG7/7rQENKmc3CzIJ+RAfaePlHKe8Wrs1kkIQVSekpRAalJSl/9tck0nvLvXbf8nVJxtVHD1pq5/rHfGpLl5eYTTXsqz1TGsSrD6T/OzhxQ==",
+            "arc-authentication-results": "ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;\r\n dkim=none; arc=none",
+            "return-path": "Return-Path: <sachinsavkare08@outlook.com>",
+            "received-spf": "Received-SPF: pass (google.com: domain of sachinsavkare08@outlook.com designates 2a01:111:f403:d405::3 as permitted sender) client-ip=2a01:111:f403:d405::3;",
+            "authentication-results": "Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@outlook.com header.s=selector1 header.b=MZ6WSqad;\r\n       arc=pass (i=1);\r\n       spf=pass (google.com: domain of sachinsavkare08@outlook.com designates 2a01:111:f403:d405::3 as permitted sender) smtp.mailfrom=sachinsavkare08@outlook.com;\r\n       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=outlook.com",
+            "dkim-signature": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;\r\n s=selector1;\r\n h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;\r\n bh=PysDArNb5zozNDReSEUhdKQ2zDAYAKfmTuuOj+mD4Ro=;\r\n b=MZ6WSqad1Y/SqNei9/INRqGkLnQZzNgsUFGACjQ+2f1bRX1c/pKWsdWUxuSERNE0q8YvwjxwNIwxHFv35wE5vbmAK2+5/kcIJHqF9MJGlPpOHaE3Sj/aEaPZzUt2W9jW4pfTb/rkamkLrclT6SygoheZZ1Y/bpuYRGXBBZxYkf/YHSriiWceLvA3GVGeLSzVyDW+WyW/8Anrd2UKi0DVHBsgLMbE/Xb9lzjY4aRsQKnQHljfQpavuSmSLwMq+0oWpk6QorRkdum2WwOlUnOL04VDwFMRc686lk3pTfjQV6fjoJ0ygvb9Ld0lxWQZH+aUKRXrFxBkKdmQHNWXlbAI/Q==",
+            "from": "From: Sachin Savkare <sachinsavkare08@outlook.com>",
+            "to": "To: Sachin <sachinsavkare08@gmail.com>",
+            "subject": "Subject: Product issue",
+            "thread-topic": "Thread-Topic: Product issue",
+            "thread-index": "Thread-Index: AQHcMikQQDg6/ZSpHkqlL/u5oti91Q==",
+            "date": "Date: Tue, 30 Sep 2025 16:41:39 +0000",
+            "message-id": "Message-ID:\r\n <TY2PPF5F53593E2C86093342794EF8EE1E2B31AA@TY2PPF5F53593E2.apcprd06.prod.outlook.com>",
+            "accept-language": "Accept-Language: en-IN, en-US",
+            "content-language": "Content-Language: en-IN",
+            "x-ms-has-attach": "X-MS-Has-Attach:",
+            "x-ms-tnef-correlator": "X-MS-TNEF-Correlator:",
+            "msip_labels": "msip_labels:",
+            "x-ms-publictraffictype": "x-ms-publictraffictype: Email",
+            "x-ms-traffictypediagnostic": "x-ms-traffictypediagnostic: TY2PPF5F53593E2:EE_|PUZPR06MB5794:EE_",
+            "x-ms-office365-filtering-correlation-id": "x-ms-office365-filtering-correlation-id: 51085485-944c-4cf9-5c0b-08de00403aeb",
+            "x-ms-exchange-slblob-mailprops": "x-ms-exchange-slblob-mailprops:\r\n 2xtDbzDEsjLc4bxNPlhccK0dgac0e6/VwCEzNRLJFrehE07aerX2TPEu4PhYV7fBQglxwz9521FxRGb66dU/8wH6MFf4T8mmK23BTOkYce1MD0o6biVk1vEiXmKulV0aNcM6+UvQNMQGuFNz46Lfvsca+Bbg1XKWqsShxmR77c0I61bNCHfFkfp6RKL7N306VtQI+t5Y4pls6T9zh9mX2gF+hqjzDAM4ZvOwxbHZ9CDwIVosokYiAIyB1znR8SE7qGhd/rh6HYr0EvPZeFAeiV7KscKd7Cqhlb9k3hsZMDjht6QFXxSKtEtKT1Jcb/eNiav/RSUyekXov5uBEw9WO7xR0FZRJZaGWgOxc3KIQg2DD6a9kQXCCPo6CNQQhNQ68NL2PxAQ5DRg9isylmHa1SorrOVCl2BOS8WLRrbrNz8jmisGUXDHLqCmCWtH+8STE8V/5+cCtS/TtCFDYfbhXfRwqkgIjJ8kIXW6YeOiW0L9tUWYueeat98MVUMQyshwnxMfeW6FJFftn3b2Wa3qxijqRCd6UVAgo6aCnb3BJu0VJve2yzsJlG0ZeFaoiu5W9O9ARQVOOe5DRflEfWoAKA==",
+            "x-microsoft-antispam": "x-microsoft-antispam:\r\n BCL:0;ARA:14566002|31061999003|461199028|15080799012|15030799006|8060799015|8062599012|19110799012|37102599003|40105399003|440099028|3412199025|102099032;",
+            "x-microsoft-antispam-message-info": "x-microsoft-antispam-message-info:\r\n =?iso-8859-1?Q?GEcjMoI0kgNsEFKj4vk4QHXjwUhKTLfYPxOXucVF91fe1a7r1NB4Rnk1+L?=\r\n =?iso-8859-1?Q?SFx5FWdGV6BPT7WWgKUYFmRIop0hZFJ3renM0dAMaLX4QrxrNOfziz9KZ/?=\r\n =?iso-8859-1?Q?klzIZhJgiyCOQMfwjcZFZO+7OotedajHurL1Ts4m0u7LMhhhFOawFSkjvQ?=\r\n =?iso-8859-1?Q?j+25ZzRQIlVmmRkNDt5VcTqElSTH9xnW/nRZ+9Y/UA12OGBsQAIn/ysajq?=\r\n =?iso-8859-1?Q?6nKxJ2OTHsGOVQNQ8zMx7ZjnG5yQp9Kr+s9oX9+9t3/lq+B8yl/ir0eZSw?=\r\n =?iso-8859-1?Q?lZFhAg5DevoDkvGkt7VJblw6bafbGL/uN0JDQZtP4Jw/5ktrY1wzX/EeHI?=\r\n =?iso-8859-1?Q?J/I/wTTVnb8Rbx927Tl4FcoxvMy+Z8jMrIQmDIJeivS3ic/PGkSTA6DOXB?=\r\n =?iso-8859-1?Q?4pyaCAFyA2r0x4X57qPF8zh5ng9NRRfggl5Q/yQ+VSgfFgLBdT1HsAZrkR?=\r\n =?iso-8859-1?Q?DUGRuN4DdtZcrj+vSJ1QCB2W+IhrwZNr9mgbARDsO0ZUwNbI3UBbRF4hFU?=\r\n =?iso-8859-1?Q?GASxBYsIMTGS0j97u7X/eHEsQVDqFqZdjrYyCVmxUo7x6xNCOF2OsRXyG3?=\r\n =?iso-8859-1?Q?a68VAcMGc4zhHZ/NiKGonqh/wS0J3/DuARjfq+iHc/EEGXeHH7Eb/ptn/e?=\r\n =?iso-8859-1?Q?ykJxUjf2lSCncMzzxVhIgxvoQoJVsVU2JPSB8bavQfygQ/+jxrPpmlWBRL?=\r\n =?iso-8859-1?Q?L6xgmUSU3nSgDXedIWKiYLnBj4gWg46ez95KjiIhE5Abqnrrw4JWdE6YFT?=\r\n =?iso-8859-1?Q?B9WIHwEgczgJs8lG5IdU8pz+QDiqo7aHUkPioAdd87Kbghr43URuNsQAmZ?=\r\n =?iso-8859-1?Q?dX96GHj4HxcvAx6tNbpq/wk4viNB518WJUsdTdsU2yqTz+hVlvfPlFH/NW?=\r\n =?iso-8859-1?Q?O4CYy4SjRQBzKkBzsMoUqxBOlkRiRymoa1ePrBDyNJFEvcwaG9cITP1Efo?=\r\n =?iso-8859-1?Q?sHpYEiAPgt+bcEPGptM1u+kr+H4KzmLjWO7+M2x8CFS0oOKsCuWKxN3yha?=\r\n =?iso-8859-1?Q?TZofbyqqOwi7I9KMm2Bg7sbnBBZp77M9ykYnKbFUMhdg8LVy+2ijwaXd/6?=\r\n =?iso-8859-1?Q?jz41XuNymO54fwzs+9G14oJBhQNhrRh8GewFz/HrCRDPMJ/AB1PfLsxr3b?=\r\n =?iso-8859-1?Q?ChxwHdi9IofsPoRhtFdTzL+tDVaIduwNeYY+Xe5ZpYMfgUkuwDKuyK1+T8?=\r\n =?iso-8859-1?Q?xflBCJB0SrkYynjmDujdtI/ubSIVHtoojzn0qyOFThTk9heiee532teHin?=\r\n =?iso-8859-1?Q?nbpz2XiVST5Rs/dBCfTw=3D=3D?=",
+            "x-ms-exchange-antispam-messagedata-chunkcount": "x-ms-exchange-antispam-messagedata-chunkcount: 1",
+            "x-ms-exchange-antispam-messagedata-0": "x-ms-exchange-antispam-messagedata-0:\r\n =?iso-8859-1?Q?570O5HqxPynnitzm4FaO9ay5cptQMP53dx5rd9cHjnD6CObdeh9yngqH9g?=\r\n =?iso-8859-1?Q?0xnh6VmM/h8zxD0N1zF9D2IDGXbQ5xK+tMjg+nBefeSTdsxoDq09c4HbCQ?=\r\n =?iso-8859-1?Q?os/v1e+mT8L7V2whr2OxfawSuWg6zRBNN1SgVNbbGjF6cRCnaBfhg0p3SA?=\r\n =?iso-8859-1?Q?m4AEiyNp61nKnWEfxlSo3ioxW3+n2eq7ggKzAKUjHl346vyk+7C73H9zJR?=\r\n =?iso-8859-1?Q?xVuXTslzW3LsQkiynq6XVhQVGnuzbwZyHqcHkqGKZEWZPyHtA6pKehMswb?=\r\n =?iso-8859-1?Q?83vncG8UNsOxufuJS5Q10KAiY649UfIBpGGpv06SZw6pJ/ARXm1ugJeNio?=\r\n =?iso-8859-1?Q?TzdGDEQhLOmIIA42diNk94vjlhXHCcahsihZDMr2TH0G73m3CMNHLv6VWK?=\r\n =?iso-8859-1?Q?L45+DJsAJaVgtENJGyB0wQ7hbr4I/Z3GinZGpotcE2zhFIieyReUWh8GXe?=\r\n =?iso-8859-1?Q?/1PtiuC9NqD7fARpjPdLlomWHPzrg32Ky2mEjmer6oueOse0BtfNzD6FEu?=\r\n =?iso-8859-1?Q?dMAcJLuCCOtD+OLKgpRJjAUXnOk48zNNaEVgTTjxiipdttXaoB//Qr/k7d?=\r\n =?iso-8859-1?Q?0E/LqeD522FNtn6awCrh4nw6nGfnhajp/nodKj5rVsIAYHeBQRtsz5+1Qj?=\r\n =?iso-8859-1?Q?z25fETgTabeGnlQr+UN4ZmQPIo4So3PWG1SA2x0AjtmU3Umr9QSBXVQ5Gr?=\r\n =?iso-8859-1?Q?olYEjafj2Dov7pkZniFET4a+DSfyFwn6jQaOCR+ZlqAVHaeSQTaHE73+g2?=\r\n =?iso-8859-1?Q?Te2chQNmrqrkMh9OZ9G9lxg67S0lCMN2evlNSyuB86fAjSMif7ihgafogk?=\r\n =?iso-8859-1?Q?K1IVLeywcrBFv1i1nSraH1nMOQca8Nt2mzgMEgUMngW0LeJKfP2XijZiX7?=\r\n =?iso-8859-1?Q?s7sFugbe9x+Z0tdrtOjJ/yn0OQePMKy+wmW7bDPbTvdJQ8ScRDte/6VAgy?=\r\n =?iso-8859-1?Q?6OO/IbD6a6Cdof+J61SYHte8EszJqV7FoeQR+dJzActzbbzrFsumW0sVXD?=\r\n =?iso-8859-1?Q?6xPA3phb3duwZuByu7LoSO4gXb9E0SDKuIA0ieEnjAZICujfJ2ZXcmfgl5?=\r\n =?iso-8859-1?Q?JL62FQrpqAhLliTBP5VcFIH2UcP1lT8DOupzXY1I7THR5Y3qYgizIJsrQu?=\r\n =?iso-8859-1?Q?4EeWl8lIcboIN1YMnbl72ufE8smJpvWcmzKzbAQaehhc5W7Qk5F+als8oK?=\r\n =?iso-8859-1?Q?bNJDMiJhB3elN8ZK/+ooCdJr5203k3VVvFCV8XpjsyZQVaAvP5H/6UDL9T?=\r\n =?iso-8859-1?Q?bKqAjXoV3ZsoGXNwhdVTwl5yu+9n/5XDyYpPlfdoSNlW7PxEFuPaRYLBgI?=\r\n =?iso-8859-1?Q?xlTO?=",
+            "content-type": "Content-Type: multipart/alternative;\r\n\tboundary=\"_000_TY2PPF5F53593E2C86093342794EF8EE1E2B31AATY2PPF5F53593E2_\"",
+            "mime-version": "MIME-Version: 1.0",
+            "x-originatororg": "X-OriginatorOrg: outlook.com",
+            "x-ms-exchange-crosstenant-authas": "X-MS-Exchange-CrossTenant-AuthAs: Internal",
+            "x-ms-exchange-crosstenant-authsource": "X-MS-Exchange-CrossTenant-AuthSource: TY2PPF5F53593E2.apcprd06.prod.outlook.com",
+            "x-ms-exchange-crosstenant-rms-persistedconsumerorg": "X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000",
+            "x-ms-exchange-crosstenant-network-message-id": "X-MS-Exchange-CrossTenant-Network-Message-Id: 51085485-944c-4cf9-5c0b-08de00403aeb",
+            "x-ms-exchange-crosstenant-originalarrivaltime": "X-MS-Exchange-CrossTenant-originalarrivaltime: 30 Sep 2025 16:41:39.9140\r\n (UTC)",
+            "x-ms-exchange-crosstenant-fromentityheader": "X-MS-Exchange-CrossTenant-fromentityheader: Hosted",
+            "x-ms-exchange-crosstenant-id": "X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa",
+            "x-ms-exchange-transport-crosstenantheadersstamped": "X-MS-Exchange-Transport-CrossTenantHeadersStamped: PUZPR06MB5794"
+          },
+          "html": "<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n<style type=\"text/css\" style=\"display:none;\"> P {margin-top:0;margin-bottom:0;} </style>\n</head>\n<body dir=\"ltr\">\n<div style=\"font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\" class=\"elementToProof\">\nHi,</div>\n<div style=\"font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\" class=\"elementToProof\">\nMy product is defective. What should i do? How do i speak to a live human representative?</div>\n<div style=\"font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\" class=\"elementToProof\">\n<br>\n</div>\n<div style=\"font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\" class=\"elementToProof\">\nThanks,</div>\n<div style=\"font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\" class=\"elementToProof\">\nDavid</div>\n</body>\n</html>\n",
+          "text": "Hi,\nMy product is defective. What should i do? How do i speak to a live human representative?\n\nThanks,\nDavid\n",
+          "textAsHtml": "<p>Hi,<br/>My product is defective. What should i do? How do i speak to a live human representative?</p><p>Thanks,<br/>David</p>",
+          "subject": "Product issue",
+          "date": "2025-09-30T16:41:39.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "sachinsavkare08@gmail.com",
+                "name": "Sachin"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Sachin</span> &lt;<a href=\"mailto:sachinsavkare08@gmail.com\" class=\"mp_address_email\">sachinsavkare08@gmail.com</a>&gt;</span>",
+            "text": "\"Sachin\" <sachinsavkare08@gmail.com>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "sachinsavkare08@outlook.com",
+                "name": "Sachin Savkare"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Sachin Savkare</span> &lt;<a href=\"mailto:sachinsavkare08@outlook.com\" class=\"mp_address_email\">sachinsavkare08@outlook.com</a>&gt;</span>",
+            "text": "\"Sachin Savkare\" <sachinsavkare08@outlook.com>"
+          },
+          "messageId": "<TY2PPF5F53593E2C86093342794EF8EE1E2B31AA@TY2PPF5F53593E2.apcprd06.prod.outlook.com>"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Content": {
+      "main": [
+        [
+          {
+            "node": "Mail is Customer Support ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Customer Support Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Not Customer Support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mail is Customer Support ?": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.1-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Customer Support Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer questions with a vector store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.1-mini1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Support Agent": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Support Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        []
+      ],
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2aca63b3-0fa6-4a06-ada2-8869ed3ded43",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91f42292365f2736b62ea45ddfd531a5d9a185f2bc4a363bfb1ae1188ac76851"
+  },
+  "id": "JvEHYkQNHgXLbdRD",
+  "tags": []
+}
